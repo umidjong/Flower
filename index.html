@@ -18,6 +18,11 @@
         }
         .animate-scan { animation: scan 8s linear infinite; }
         .heart { animation: floatUp linear forwards; }
+        
+        /* Chiroyli skrollbar uchun */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 4px; }
     </style>
 </head>
 <body class="relative min-h-screen bg-slate-950 text-emerald-400 font-mono flex flex-col items-center justify-center overflow-hidden p-4 md:p-6 select-none">
@@ -27,56 +32,68 @@
 
     <div id="hearts-container" class="absolute inset-0 pointer-events-none"></div>
 
-    <div class="relative z-10 max-w-2xl w-full bg-slate-900/80 border border-emerald-500/30 rounded-lg p-6 backdrop-blur-md shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-        <div class="flex items-center gap-2 border-b border-slate-800 pb-3 mb-4">
+    <div class="relative z-10 max-w-2xl w-full bg-slate-900/90 border border-emerald-500/30 rounded-lg p-5 backdrop-blur-md shadow-[0_0_40px_rgba(16,185,129,0.15)] flex flex-col max-h-[85vh]">
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-3 mb-4 flex-shrink-0">
             <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
             <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
             <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
             <span class="text-xs text-slate-500 ml-2">session_termination.log</span>
         </div>
 
-        <div class="leading-relaxed text-sm md:text-base min-h-[250px] text-slate-300">
+        <div id="terminal-body" class="leading-relaxed text-sm md:text-base text-slate-300 overflow-y-auto pr-2 flex-grow">
             <span class="text-emerald-500 font-bold">$ run goodbye_protocol.sh</span> <br />
             <span class="text-slate-500" id="timestamp"></span> <br /><br />
             <span id="typing-text"></span><span class="animate-pulse font-bold text-emerald-400">|</span>
         </div>
     </div>
 
-    <div class="absolute bottom-4 left-4 text-[10px] text-slate-600">
+    <div class="absolute bottom-4 left-4 text-[10px] text-slate-600 z-0">
         SECURE_CONNECTION_CLOSED // AUTH_REVOKED
     </div>
 
     <script>
-        // Vaqtni o'rnatish
         document.getElementById('timestamp').innerText = "[" + new Date().toLocaleTimeString() + "] Status: Disconnecting...";
 
-        // Siz yuborgan hayrlashuv matni
-        const fullText = `Siz bilan gaplashib, bir-birimizni tushunishga harakat qilib ko‘rdik, lekin fe’l-atvorimiz va dunyoqarashimiz umuman mos kelmasligini bildim. Hozirdan o‘rtamizda shunchalik tushunmovchilik va og‘ir urushlar bo‘layotgan ekan, keyinchalik birga hayot qurganimizda ham tinchlik bo‘lishiga hech kim kafolat berolmaydi. Men kelajakda bunday asabbuzar ko‘ngilsizliklar bilan yashashni xohlamayman.\\n\\nOxirgi bo‘lgan gap-so‘zlardan keyin o‘rtamizda hech qanday iliqlik qolmadi, qaytib yarasha olmayman. Sovchi jo‘natish niyatimdan ham butunlay qaytdim.\\n\\nSizdan iltimos, mendan keyin umidvor bo‘lib meni kutmang. Bir-birimizni ortiqcha bezovta qilmaylik va vaqtimizni ketkazmaylik. Yo‘limiz ham, taqdirimiz ham mutlaqo boshqa. Hayotda o‘zingizga mos, sizni tushunadigan insonni topishingizni tilayman.\\n\\nmendan zarracha umidvor bo‘lmang, yo‘limni kutmang. Meni qaytarishga yoki tushuntirishga urinib o‘zingizni ham, meni ham bezovta qilmang.\\n\\nBiz uchun eng yaxshisi — bir-birimizga begona bo‘lib qolish.\\n\\nSizga tilagim: doimo ota-onangizning aytganini qilib, gaplariga quloq soling, ularning yuzini yorug‘ qiladigan soliha qiz bo‘ling. Hayotda to‘xtab qolmay, shaxsiy rivojlanishingiz, o‘qish va maqsadlaringiz ustida ishlang. Va eng muhimi — har qanday vaziyatda ham qalbingizdagi iymoningizni yo‘qotmang. Doimo o‘zingizni ehtiyot qiling.\\n\\nBiz uchun eng yaxshisi — bir-birimizga begona bo‘lib qolish. Taqdiringiz mendan xayrli va go‘zal bo‘lsin..............!!!`;
-        
-        let index = 0;
+        // Matnlar massivi (har bir xatboshi alohida chiqishi uchun)
+        const paragraphs = [
+            "Siz bilan gaplashib, bir-birimizni tushunishga harakat qilib ko‘rdik, lekin fe’l-atvorimiz va dunyoqarashimiz umuman mos kelmasligini bildim. Hozirdan o‘rtamizda shunchalik tushunmovchilik va og‘ir urushlar bo‘layotgan ekan, keyinchalik birga hayot qurganimizda ham tinchlik bo‘lishiga hech kim kafolat berolmaydi. Men kelajakda bunday asabbuzar ko‘ngilsizliklar bilan yashashni xohlamayman.",
+            "Oxirgi bo‘lgan gap-so‘zlardan keyin o‘rtamizda hech qanday iliqlik qolmadi, qaytib yarasha olmayman. Sovchi jo‘natish niyatimdan ham butunlay qaytdim.",
+            "Sizdan iltimos, mendan keyin umidvor bo‘lib meni kutmang. Bir-birimizni ortiqcha bezovta qilmaylik va vaqtimizni ketkazmaylik. Yo‘limiz ham, taqdirimiz ham mutlaqo boshqa. Hayotda o‘zingizga mos, sizni tushunadigan insonni topishingizni tilayman.",
+            "Mendan zarracha umidvor bo‘lmang, yo‘limni kutmang. Meni qaytarishga yoki tushuntirishga urinib o‘zingizni ham, meni ham bezovta qilmang.",
+            "Biz uchun eng yaxshisi — bir-birimizga begona bo‘lib qolish.",
+            "Sizga tilagim: doimo ota-onangizning aytganini qilib, gaplariga quloq soling, ularning yuzini yorug‘ qiladigan soliha qiz bo‘ling. Hayotda to‘xtab qolmay, shaxsiy rivojlanishingiz, o‘qish va maqsadlaringiz ustida ishlang. Va eng muhimi — har qanday vaziyatda ham qalbingizdagi iymoningizni yo‘qotmang. Doimo o‘zingizni ehtiyot qiling.",
+            "Biz uchun eng yaxshisi — bir-birimizga begona bo‘lib qolish. Taqdiringiz mendan xayrli va go‘zal bo‘lsin..............!!!"
+        ];
+
+        let pIndex = 0;
+        let cIndex = 0;
         const typingText = document.getElementById('typing-text');
+        const terminalBody = document.getElementById('terminal-body');
 
         function type() {
-            if (index < fullText.length) {
-                let char = fullText.charAt(index);
-                // Matndagi \n belgisini topganda yangi qatorga tushirish
-                if (char === '\\' && fullText.charAt(index + 1) === 'n') {
-                    typingText.innerHTML += '<br><br>';
-                    index += 2;
+            if (pIndex < paragraphs.length) {
+                let currentText = paragraphs[pIndex];
+                if (cIndex < currentText.length) {
+                    typingText.innerHTML += currentText.charAt(cIndex);
+                    cIndex++;
+                    // Matn yozilgan sari avtomatik pastga skroll bo'ladi
+                    terminalBody.scrollTop = terminalBody.scrollHeight;
+                    setTimeout(type, 75); // Sekinlik darajasi (75ms)
                 } else {
-                    typingText.innerHTML += char;
-                    index++;
+                    typingText.innerHTML += "<br><br>";
+                    pIndex++;
+                    cIndex = 0;
+                    setTimeout(type, 800); // Har bir xatboshi orasidagi tanaffus (0.8 sekund)
                 }
-                setTimeout(type, 35); 
             }
         }
-        setTimeout(type, 1500); // Sahifa ochilgach 1.5 sekund kutib yozishni boshlaydi
+        setTimeout(type, 1500);
 
-        // Kiber fondagi neonli yuraklar effekti
+        // Yuraklar effekti
         const container = document.getElementById('hearts-container');
         setInterval(() => {
             const heart = document.createElement('span');
-            heart.className = 'absolute bottom-[-20px] text-red-500 opacity-60 heart';
+            heart.className = 'absolute bottom-[-20px] text-red-500 opacity-50 heart';
             heart.innerText = '❤️';
             heart.style.left = Math.random() * 100 + '%';
             heart.style.fontSize = Math.random() * 20 + 12 + 'px';
@@ -86,7 +103,7 @@
             
             container.appendChild(heart);
             setTimeout(() => heart.remove(), duration * 1000);
-        }, 500);
+        }, 600);
     </script>
 </body>
 </html>
